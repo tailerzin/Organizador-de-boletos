@@ -1,117 +1,79 @@
-# Boletos Organizer
+# Organizador de Boletos
 
-Aplicação Java standalone (GUI Swing) para organizar PDFs de boletos e guias fiscais. O
-programa roda localmente, lê uma planilha Excel `.xlsx` de empresas e não depende de Google
-Sheets ou Drive.
+Este programa ajuda a separar e renomear boletos e guias fiscais em PDF. Ele lê as informações do documento, procura a empresa na sua planilha Excel e organiza o arquivo em uma pasta com o nome dela. O processamento acontece localmente no computador.
 
-## Como funciona
+## O que acontece quando você processa
 
-1. Configure as pastas e arquivos na janela do programa (as opções ficam salvas automaticamente
-   em `%USERPROFILE%\.boletos-organizer\boletos-organizer.properties`):
-   - **Pasta de entrada**: onde você joga os PDFs baixados para processar.
-   - **Pasta de saída**: onde os PDFs organizados vão parar (`Empresa/Tributo/arquivo.pdf`).
-   - **Planilha de empresas (.xlsx)**: lista de empresas com CNPJ e tributo. O botão `...`
-     deste campo seleciona um arquivo Excel. Se o caminho escolhido não existir, o programa cria
-     um modelo automaticamente (colunas: `Nome | CNPJ | Tributo | Nº do Parcelamento`).
-   - **Pasta tessdata**: onde ficam os arquivos de idioma do Tesseract (necessário só para
-     PDFs escaneados — veja seção OCR abaixo).
-2. Clique em **"Abrir Pasta de Entrada"** para achar rápido onde jogar os PDFs baixados.
-3. Clique em **"Processar Todos os Arquivos"**. O programa:
-   - Extrai o texto de cada PDF (direto via PDFBox; se vier vazio, tenta OCR automaticamente).
-   - Identifica a empresa por CNPJ ou, se não achar, por nome no texto.
-   - Extrai número de parcela e data de vencimento via regex.
-   - Move o arquivo, renomeado, para `saida/Empresa/`.
-   - Arquivos não identificados vão para `saida/_NAO_IDENTIFICADO/` — **nunca são apagados
-     nem sobrescritos**, e um erro em um arquivo não interrompe o processamento dos demais.
+O programa lê cada PDF da pasta de entrada e tenta localizar o CNPJ. Se não encontrar um CNPJ, tenta reconhecer o nome da empresa. Também procura informações como tributo, parcela, número do parcelamento e vencimento para compor um nome mais fácil de identificar.
 
-## Ajustando os regex
+Os documentos reconhecidos vão para `saida/Nome da Empresa/`. Se o programa não conseguir associar um arquivo a uma empresa, ele o coloca em `saida/_NAO_IDENTIFICADO/` para você conferir. Se ocorrer um erro ao ler um documento, ele fica na pasta de entrada.
 
-Os padrões de CNPJ/parcela/vencimento/tipo de tributo estão centralizados em
-`DocumentParser.java`. Como os boletos reais variam de layout, é bem provável que seja
-necessário ajustar esses regex depois de testar com PDFs de verdade — mande alguns exemplos
-(com dados sensíveis borrados) que eu ajusto os padrões junto com você.
+> **Atenção:** processar um arquivo significa movê-lo da pasta de entrada para a pasta de saída. Coloque na entrada somente os PDFs que deseja organizar e mantenha uma cópia de segurança dos documentos importantes.
 
-## OCR (PDFs escaneados)
+## Primeira configuração
 
-Para PDFs sem texto selecionável, o programa usa Tesseract via Tess4J. Você precisa:
+Abra o programa e confira os campos da janela:
 
-1. Instalar o Tesseract OCR (ou apenas baixar os arquivos `tessdata` compatíveis com sua
-   versão do Tess4J — não precisa instalar o Tesseract completo no Windows, só apontar a
-   pasta `tessdata` com pelo menos o arquivo `por.traineddata` — [disponível aqui](https://github.com/tesseract-ocr/tessdata)).
-2. Apontar a pasta que contém esses arquivos no campo "Pasta tessdata" da janela.
-3. **No Windows**, o Tess4J também precisa das DLLs nativas do Tesseract/Leptonica — a
-   forma mais simples é instalar o [Tesseract para Windows (UB-Mannheim build)](https://github.com/UB-Mannheim/tesseract/wiki)
-   e garantir que a pasta de instalação esteja no `PATH`, ou copiar as DLLs para a mesma
-   pasta do `.exe` gerado.
+- **Pasta de entrada:** local onde você colocará os novos PDFs. O botão **Abrir Pasta de Entrada** cria a pasta, se necessário, e a abre no Explorador de Arquivos.
+- **Pasta de saída:** destino dos PDFs organizados.
+- **Planilha de empresas (.xlsx):** arquivo Excel com nomes, CNPJs e tributos cadastrados. Use o botão `...` deste campo para selecionar o arquivo `.xlsx`.
+- **Pasta tessdata:** usada somente para PDFs escaneados ou sem texto selecionável. Veja [Leitura de PDFs escaneados](#leitura-de-pdfs-escaneados).
+- **Aba da planilha:** opcional. Se ficar vazia, o programa procura uma aba com `Nome` e `CNPJ` na primeira linha. Se não encontrar, usa a primeira aba. Você também pode informar o nome de uma aba específica.
 
-## Build (no seu computador, com acesso à internet)
+Na primeira execução, os caminhos sugeridos ficam dentro de uma pasta `BoletosOrganizer` na sua pasta de usuário. Você pode escolher outros locais. As configurações ficam salvas para as próximas vezes em `%USERPROFILE%\.boletos-organizer\boletos-organizer.properties`.
 
-Pré-requisitos: JDK 17+ e Maven.
+Se a planilha indicada não existir, o programa cria um modelo. Troque a linha de exemplo pelos dados reais antes de processar seus documentos.
+
+## Como preparar a planilha
+
+Use um arquivo `.xlsx` com as colunas abaixo, nesta ordem, começando na primeira linha:
+
+| Nome | CNPJ | Tributo | Nº do Parcelamento |
+| --- | --- | --- | --- |
+| Empresa Exemplo LTDA | 00.000.000/0001-00 | Simples Nacional | *(opcional)* |
+
+Cada linha representa uma combinação de empresa e tributo/parcelamento. Se uma empresa tiver mais de um tributo ou parcelamento, cadastre uma linha para cada combinação. O número do parcelamento é opcional, mas ajuda a selecionar a linha correta quando ele também aparece no documento.
+
+Digite o CNPJ como texto para preservar zeros à esquerda. Não altere a ordem das colunas. Se o arquivo tiver várias abas, o programa procura os cabeçalhos na primeira linha; você pode indicar uma aba pelo campo correspondente.
+
+## Sua rotina de uso
+
+1. Salve na **Pasta de entrada** os PDFs que deseja organizar.
+2. Abra o programa e confira se as pastas e a planilha selecionadas estão corretas.
+3. Clique em **Processar Todos os Arquivos** e acompanhe as mensagens no log.
+4. Ao final, confira quantos arquivos foram identificados, não identificados ou tiveram erro.
+5. Revise `saida/_NAO_IDENTIFICADO/` e confirme os nomes e destinos antes de encaminhar os documentos.
+
+Os PDFs identificados ficam em uma pasta por empresa. Se dois documentos tiverem o mesmo nome, o programa acrescenta o vencimento e, se ainda houver colisão, um número ao final para não substituir o arquivo existente. Os documentos com erro permanecem na entrada para você verificar e tentar novamente.
+
+## Leitura de PDFs escaneados
+
+O programa primeiro tenta ler o texto já presente no PDF. Se o arquivo for uma digitalização ou imagem, pode usar o Tesseract OCR. Para isso, configure o Tesseract e indique no campo **Pasta tessdata** uma pasta que contenha o arquivo de idioma português `por.traineddata`.
+
+No Windows, o OCR também precisa das bibliotecas nativas do Tesseract. Uma opção é instalar a [versão UB-Mannheim do Tesseract](https://github.com/UB-Mannheim/tesseract/wiki) e deixar as bibliotecas disponíveis no `PATH` do sistema. PDFs digitais, com texto selecionável, não precisam do OCR.
+
+## Se uma empresa não for reconhecida
+
+Confira se o CNPJ está correto na planilha e se os cabeçalhos estão na primeira linha da aba escolhida. Se o documento não tiver um CNPJ legível, o nome cadastrado precisa aparecer no PDF. Para documentos escaneados, verifique se o OCR está configurado.
+
+Os formatos de boletos variam. Por isso, parcela, tributo ou vencimento podem não ser reconhecidos em alguns modelos. Confira os nomes e os destinos gerados antes de usar os arquivos.
+
+## Executar o programa
+
+Para compilar o projeto, é necessário ter JDK 17 ou mais recente e Maven. Abra um terminal na pasta do projeto e execute:
 
 ```bash
 mvn clean package
 ```
 
-Isso gera `target/boletos-organizer.jar` (fat jar com todas as dependências).
-Testar direto:
+Depois, inicie o programa com:
 
 ```bash
 java -jar target/boletos-organizer.jar
 ```
 
-## Cuidados antes de publicar
+No Windows, também é possível empacotar um instalador `.exe` com o `jpackage`, incluído no JDK. O empacotamento deve ser feito no Windows.
 
-- Não envie boletos reais, planilhas de clientes, configurações locais ou arquivos `tessdata` para
-  o repositório. O `.gitignore` já exclui esses tipos de arquivo e as pastas de build/IDE.
-- Os padrões de extração atendem layouts específicos e precisam ser validados com documentos de
-  cada emissor. Confira os nomes e destinos gerados antes de usar em lote.
-- O código não inclui documentos reais de exemplo; compartilhe apenas amostras com dados
-  pessoais e financeiros removidos.
+## Privacidade
 
-## Gerando o .exe nativo (jpackage — não depende de Java instalado na máquina do trabalho)
-
-O `jpackage` já vem com o JDK 17+. No Windows, rode (ajuste os caminhos):
-
-```powershell
-jpackage --type exe `
-  --input target `
-  --main-jar boletos-organizer.jar `
-  --main-class com.empresa.boletos.Main `
-  --name "Boletos Organizer" `
-  --app-version 1.0.0 `
-  --win-dir-chooser `
-  --win-menu `
-  --win-shortcut
-```
-
-Isso empacota um JRE mínimo junto com o `.exe`, então a máquina do trabalho **não precisa
-ter Java instalado**. Rode esse comando em um computador com Windows (pode ser o de casa
-ou uma máquina virtual) — o `.exe` resultante roda em qualquer Windows compatível.
-
-> Nota: o `jpackage` deve ser executado no mesmo sistema operacional do executável final
-> (gerar `.exe` requer rodar em Windows; gerar `.dmg`/`.pkg` requer macOS, etc.).
-
-## Estrutura do projeto
-
-```
-src/main/java/com/empresa/boletos/
-  Main.java                        - ponto de entrada
-  gui/MainWindow.java               - janela principal (Swing)
-  model/Empresa.java                - dados de uma empresa cadastrada
-  model/DocumentoFiscal.java        - dados extraídos de um PDF
-  service/ConfigService.java        - persiste as pastas configuradas
-  service/EmpresaRepository.java    - lê a planilha local de empresas
-  service/PdfTextExtractor.java     - extração de texto (PDFBox + fallback OCR)
-  service/DocumentParser.java       - regex de CNPJ/parcela/vencimento/tributo
-  service/FileOrganizer.java        - renomeia e move para a pasta final
-  service/ProcessamentoService.java - orquestra o processamento em lote
-  util/FilenameSanitizer.java       - limpa nomes de arquivo/pasta
-```
-
-## Próximos ajustes recomendados
-
-- Validar os regex de `DocumentParser` com PDFs reais de cada tipo de tributo.
-- Se algumas empresas usarem tributos diferentes por parcelamento (não fixo na planilha),
-  o programa já usa `tipoTributoDetectado` do texto como alternativa — validar se está
-  batendo certo.
-- Considerar logging em arquivo (além da tela) para auditoria de processamentos passados.
+Boletos e planilhas podem conter dados pessoais, fiscais e financeiros. Não inclua documentos reais, planilhas de clientes, configurações locais ou arquivos do Tesseract no repositório. O `.gitignore` exclui PDFs, planilhas Excel, configurações locais e arquivos de build, mas confira os arquivos selecionados no Git antes de publicar.
