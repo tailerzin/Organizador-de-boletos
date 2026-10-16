@@ -1,0 +1,16 @@
+# Maven build output
+/target/
+/dependency-reduced-pom.xml
+
+# IDE files
+/.idea/
+*.iml
+
+# Local configuration and sensitive business documents
+*.properties
+*.xlsx
+*.xls
+*.pdf
+/entrada/
+/saida/
+/tessdata/
