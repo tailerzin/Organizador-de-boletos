@@ -58,6 +58,8 @@ Confira se o CNPJ está correto na planilha e se os cabeçalhos estão na primei
 
 Os formatos de boletos variam. Por isso, parcela, tributo ou vencimento podem não ser reconhecidos em alguns modelos. Confira os nomes e os destinos gerados antes de usar os arquivos.
 
+Alguns DARFs não trazem a palavra “Simplificado” no texto. Quando isso acontecer e houver várias linhas para a mesma empresa, o programa pode escolher a linha `Simplificado` da planilha se todos os candidatos forem do mesmo CNPJ.
+
 ## Executar o programa
 
 Para compilar o projeto, é necessário ter JDK 17 ou mais recente e Maven. Abra um terminal na pasta do projeto e execute:

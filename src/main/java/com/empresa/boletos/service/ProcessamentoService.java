@@ -75,6 +75,8 @@ public class ProcessamentoService {
         String cnpj = parser.extrairCnpj(resultado.texto);
         String tributoDetectado = parser.detectarTipoTributo(resultado.texto);
         String numeroParcelamento = parser.extrairNumeroParcelamento(resultado.texto);
+        boolean documentoDarf = resultado.texto != null
+                && resultado.texto.toUpperCase(java.util.Locale.ROOT).contains("DARF");
 
         doc.setCnpjEncontrado(cnpj);
         doc.setNumeroParcela(parser.extrairNumeroParcela(resultado.texto));
@@ -85,11 +87,11 @@ public class ProcessamentoService {
         Empresa empresa = null;
         if (cnpj != null) {
             List<Empresa> porCnpj = empresaRepository.buscarTodasPorCnpj(cnpj);
-            empresa = escolherMelhorCandidato(porCnpj, tributoDetectado, numeroParcelamento);
+            empresa = escolherMelhorCandidato(porCnpj, tributoDetectado, numeroParcelamento, documentoDarf);
         }
         if (empresa == null) {
             List<Empresa> candidatos = empresaRepository.buscarTodasPorNomeNoTexto(resultado.texto);
-            empresa = escolherMelhorCandidato(candidatos, tributoDetectado, numeroParcelamento);
+            empresa = escolherMelhorCandidato(candidatos, tributoDetectado, numeroParcelamento, documentoDarf);
         }
         doc.setEmpresa(empresa);
         if (empresa != null) {
@@ -113,9 +115,11 @@ public class ProcessamentoService {
      * tributo/parcelamento), desempata nesta ordem de prioridade:
      *   1) número de parcelamento extraído do PDF == número de parcelamento da linha (mais específico)
      *   2) tributo detectado no texto do PDF == tributo da linha
-     *   3) primeira linha encontrada (comportamento antigo, usado só quando nada mais ajuda)
+     *   3) em DARF sem tipo detectado, uma linha Simplificado quando todos os candidatos têm o mesmo CNPJ
+     *   4) primeira linha encontrada (comportamento antigo, usado só quando nada mais ajuda)
      */
-    private Empresa escolherMelhorCandidato(List<Empresa> candidatos, String tributoDetectado, String numeroParcelamento) {
+    private Empresa escolherMelhorCandidato(List<Empresa> candidatos, String tributoDetectado,
+                                            String numeroParcelamento, boolean documentoDarf) {
         if (candidatos.isEmpty()) return null;
         if (candidatos.size() == 1) return candidatos.get(0);
 
@@ -138,7 +142,27 @@ public class ProcessamentoService {
             }
         }
 
+        // Alguns DARFs Simplificados não trazem a palavra "Simplificado" no texto extraído.
+        // Se a extração do tipo falhou, e os candidatos são linhas da mesma empresa, prefira
+        // a linha Simplificado quando ela existir em vez de escolher outra linha por ordem.
+        if (tributoDetectado == null && documentoDarf && todosMesmoCnpj(candidatos)) {
+            for (Empresa e : candidatos) {
+                if (normalizarTributo(e.getTributo()).contains("SIMPLIFICADO")) {
+                    return e;
+                }
+            }
+        }
+
         return candidatos.get(0);
+    }
+
+    private boolean todosMesmoCnpj(List<Empresa> candidatos) {
+        String cnpj = candidatos.get(0).getCnpj();
+        if (cnpj.isBlank()) return false;
+        for (Empresa e : candidatos) {
+            if (!cnpj.equals(e.getCnpj())) return false;
+        }
+        return true;
     }
 
     private String normalizarTributo(String tributo) {
