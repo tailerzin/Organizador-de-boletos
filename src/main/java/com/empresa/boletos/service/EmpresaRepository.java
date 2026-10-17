@@ -122,21 +122,12 @@ public class EmpresaRepository {
 
     private Sheet escolherAba(Workbook wb) {
         if (abaPreferida != null && !abaPreferida.isBlank()) {
-            Sheet porNome = wb.getSheet(abaPreferida.trim());
+            Sheet porNome = wb.getSheet(abaPreferida);
             if (porNome != null) {
                 return porNome;
             }
         }
-        DataFormatter formatter = new DataFormatter();
-        for (int i = 0; i < wb.getNumberOfSheets(); i++) {
-            Sheet sheet = wb.getSheetAt(i);
-            Row header = sheet.getRow(0);
-            if (header == null) continue;
-            String nome = formatter.formatCellValue(header.getCell(0)).trim();
-            String cnpj = formatter.formatCellValue(header.getCell(1)).trim();
-            if (nome.equalsIgnoreCase("Nome") && cnpj.equalsIgnoreCase("CNPJ")) return sheet;
-        }
-        return wb.getSheetAt(0);
+        return wb.getSheetAt(wb.getNumberOfSheets() - 1);
     }
 
     public String getAbaCarregada() {

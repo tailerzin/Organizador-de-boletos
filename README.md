@@ -18,7 +18,7 @@ Abra o programa e confira os campos da janela:
 - **Pasta de saída:** destino dos PDFs organizados.
 - **Planilha de empresas (.xlsx):** arquivo Excel com nomes, CNPJs e tributos cadastrados. Use o botão `...` deste campo para selecionar o arquivo `.xlsx`.
 - **Pasta tessdata:** usada somente para PDFs escaneados ou sem texto selecionável. Veja [Leitura de PDFs escaneados](#leitura-de-pdfs-escaneados).
-- **Aba da planilha:** opcional. Se ficar vazia, o programa procura uma aba com `Nome` e `CNPJ` na primeira linha. Se não encontrar, usa a primeira aba. Você também pode informar o nome de uma aba específica.
+- **Aba da planilha:** opcional. Se ficar vazia, o programa usa a última aba do arquivo (a mais recente, conforme sua rotina mensal). Você também pode informar o nome exato de uma aba específica. Se esse nome não existir, o programa usa a última aba.
 
 Na primeira execução, os caminhos sugeridos ficam dentro de uma pasta `BoletosOrganizer` na sua pasta de usuário. Você pode escolher outros locais. As configurações ficam salvas para as próximas vezes em `%USERPROFILE%\.boletos-organizer\boletos-organizer.properties`.
 
@@ -34,7 +34,7 @@ Use um arquivo `.xlsx` com as colunas abaixo, nesta ordem, começando na primeir
 
 Cada linha representa uma combinação de empresa e tributo/parcelamento. Se uma empresa tiver mais de um tributo ou parcelamento, cadastre uma linha para cada combinação. O número do parcelamento é opcional, mas ajuda a selecionar a linha correta quando ele também aparece no documento.
 
-Digite o CNPJ como texto para preservar zeros à esquerda. Não altere a ordem das colunas. Se o arquivo tiver várias abas, o programa procura os cabeçalhos na primeira linha; você pode indicar uma aba pelo campo correspondente.
+Digite o CNPJ como texto para preservar zeros à esquerda. Não altere a ordem das colunas. Os dados devem começar na primeira linha da aba selecionada, com os cabeçalhos acima. Se o arquivo tiver várias abas, a última será usada automaticamente; você também pode informar o nome exato de outra aba.
 
 ## Sua rotina de uso
 
