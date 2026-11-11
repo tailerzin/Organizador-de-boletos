@@ -81,6 +81,7 @@ public class ProcessamentoService {
         doc.setCnpjEncontrado(cnpj);
         doc.setNumeroParcela(parser.extrairNumeroParcela(resultado.texto));
         doc.setDataVencimento(parser.extrairDataVencimento(resultado.texto));
+        doc.setPeriodoApuracao(parser.extrairPeriodoApuracao(resultado.texto));
         doc.setTipoTributoDetectado(tributoDetectado);
         doc.setNumeroParcelamentoExtraido(numeroParcelamento);
 
@@ -100,7 +101,11 @@ public class ProcessamentoService {
 
         if (empresa != null) {
             resumo.identificados++;
-            logger.accept("  -> identificado: " + empresa.getNome() + " (" + empresa.getTributo() + ")");
+            String tipoDetectadoNormalizado = normalizarTributo(tributoDetectado);
+            String tributoExibido = "SIMPLIFICADO".equals(tipoDetectadoNormalizado)
+                    ? "Simplificado"
+                    : "PGFN".equals(tipoDetectadoNormalizado) ? "PGFN" : empresa.getTributo();
+            logger.accept("  -> identificado: " + empresa.getNome() + " (" + tributoExibido + ")");
         } else {
             resumo.naoIdentificados++;
             logger.accept("  -> NÃO identificado (CNPJ: " + (cnpj != null ? cnpj : "não encontrado") + ")");

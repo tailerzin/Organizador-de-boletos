@@ -41,6 +41,13 @@ public class FileOrganizer {
     }
 
     private String tributoFinal(DocumentoFiscal doc) {
+        String tipoDetectado = normalizarTributo(doc.getTipoTributoDetectado());
+        if ("PGFN".equals(tipoDetectado)) {
+            return "PGFN";
+        }
+        if ("SIMPLIFICADO".equals(tipoDetectado)) {
+            return "Simplificado";
+        }
         if (doc.isIdentificado()) {
             String tributoEmpresa = doc.getEmpresa().getTributo();
             if (tributoEmpresa != null && !tributoEmpresa.isBlank()) {
@@ -57,13 +64,22 @@ public class FileOrganizer {
         nome.append(limpar(nomeEmpresa));
         nome.append(" Parcelamento ").append(limpar(tributoFinal(doc)));
 
-        if (doc.getNumeroParcela() != null) {
+        String tributoNormalizado = normalizarTributo(tributoFinal(doc));
+        boolean simplificado = "SIMPLIFICADO".equals(tributoNormalizado);
+
+        boolean incluirParcela = !simplificado && doc.getNumeroParcela() != null;
+        if (incluirParcela) {
             String[] partes = doc.getNumeroParcela().split("-");
             if (partes.length == 2) {
                 nome.append(" Parcela ").append(partes[0]).append(" de ").append(partes[1]);
             } else {
                 nome.append(" Parcela ").append(doc.getNumeroParcela());
             }
+        }
+
+        boolean incluirPeriodo = !incluirParcela && doc.getPeriodoApuracao() != null;
+        if (incluirPeriodo) {
+            nome.append(" Periodo ").append(doc.getPeriodoApuracao());
         }
 
         String numParcelamento = doc.getNumeroParcelamentoExtraido();
@@ -75,12 +91,18 @@ public class FileOrganizer {
             }
         }
 
-        if (incluirVencimento && doc.getDataVencimento() != null) {
+        boolean vencimentoComoDiferenciador = !incluirParcela && !incluirPeriodo;
+        if ((incluirVencimento || vencimentoComoDiferenciador) && doc.getDataVencimento() != null) {
             nome.append(" Venc ").append(doc.getDataVencimento());
         }
 
         nome.append(".pdf");
         return nome.toString();
+    }
+
+    private String normalizarTributo(String tributo) {
+        if (tributo == null) return "";
+        return tributo.toUpperCase(java.util.Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 
     /** Remove caracteres inválidos em nome de arquivo no Windows, mantendo espaços. */

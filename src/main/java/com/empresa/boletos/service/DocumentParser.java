@@ -16,11 +16,6 @@ public class DocumentParser {
     private static final Pattern PARCELA_PATTERN =
             Pattern.compile("(?i)parcela[:\\s]*n?[ºo°]?\\s*(\\d{1,3})\\s*(?:/|de)\\s*(\\d{1,3})");
 
-    // Formato "Parcela atual: 17" + "Total de parcelas: 60" — usado como ÚLTIMO recurso (ver
-    // extrairNumeroParcela), porque em guias Estaduais reemitidas em lote no mesmo dia esse valor
-    // vem igual em todas, mesmo sendo parcelas diferentes.
-    private static final Pattern PARCELA_ATUAL_PATTERN =
-            Pattern.compile("(?i)parcela\\s+atual\\s*:?\\s*(\\d{1,3})");
     private static final Pattern TOTAL_PARCELAS_PATTERN =
             Pattern.compile("(?i)total\\s+de\\s+parcelas\\s*:?\\s*(\\d{1,3})");
 
@@ -50,6 +45,31 @@ public class DocumentParser {
 
     private static final Pattern VENCIMENTO_CONTEXTO =
             Pattern.compile("(?i)vencimento[:\\s]*" + DATA_PATTERN.pattern());
+
+    private static final Pattern DATA_LIMITE_ACOLHIMENTO_PATTERN =
+            Pattern.compile("(?iu)data\\s+limite\\s+para\\s+acolhimento\\s*:?\\s*(\\d{2})/(\\d{2})/(\\d{4})");
+
+    private static final Pattern PERIODO_APURACAO_DARF_CLASSICO_PATTERN =
+            Pattern.compile("(?iu)per[ií]odo\\s+de\\s+apura[cç][aã]o\\s+(\\d{2})/(\\d{2})/(\\d{4})");
+
+    private static final Pattern PERIODO_APURACAO_LAYOUT_NOVO_PATTERN =
+            Pattern.compile("(?iu)per[ií]odo\\s+de\\s+apura[cç][aã]o[^\\r\\n]*[\\r\\n]+\\s*(\\d{2})/(\\d{2})/(\\d{4})\\s+(\\d{2})/(\\d{2})/(\\d{4})");
+
+    public String extrairPeriodoApuracao(String texto) {
+        if (texto == null) return null;
+
+        Matcher classico = PERIODO_APURACAO_DARF_CLASSICO_PATTERN.matcher(texto);
+        if (classico.find()) {
+            return normalizarData(classico.group(1), classico.group(2), classico.group(3));
+        }
+
+        Matcher layoutNovo = PERIODO_APURACAO_LAYOUT_NOVO_PATTERN.matcher(texto);
+        if (layoutNovo.find()) {
+            return normalizarData(layoutNovo.group(1), layoutNovo.group(2), layoutNovo.group(3));
+        }
+
+        return null;
+    }
 
     public String extrairCnpj(String texto) {
         if (texto == null) return null;
@@ -82,16 +102,8 @@ public class DocumentParser {
             return inmetro.group(1) + "-" + inmetro.group(2);
         }
 
-        // último recurso: menos preciso em lotes reemitidos no mesmo dia, mas melhor que nada
-        Matcher atual = PARCELA_ATUAL_PATTERN.matcher(texto);
-        Matcher total2 = TOTAL_PARCELAS_PATTERN.matcher(texto);
-        if (atual.find() && total2.find()) {
-            return atual.group(1) + "-" + total2.group(1);
-        }
-
-        // DARF sem rótulo nenhum (ex: Simplificado sem SISPAR): desativado — o regex estava
-        // batendo no lugar errado do texto às vezes, dando número de parcela errado (pior que
-        // não ter diferenciador). Nesse caso cai no vencimento mesmo, que é seguro.
+        // Sem um campo de parcela específico e confiável, não inferir parcela a partir de
+        // "Parcela atual" / total: esses valores podem se repetir em guias reemitidas em lote.
         return null;
     }
 
@@ -116,6 +128,16 @@ public class DocumentParser {
     public String extrairDataVencimento(String texto) {
         if (texto == null) return null;
 
+        Matcher dataLimite = DATA_LIMITE_ACOLHIMENTO_PATTERN.matcher(texto);
+        if (dataLimite.find()) {
+            return normalizarData(dataLimite.group(1), dataLimite.group(2), dataLimite.group(3));
+        }
+
+        Matcher layoutNovo = PERIODO_APURACAO_LAYOUT_NOVO_PATTERN.matcher(texto);
+        if (layoutNovo.find()) {
+            return normalizarData(layoutNovo.group(4), layoutNovo.group(5), layoutNovo.group(6));
+        }
+
         Matcher comContexto = VENCIMENTO_CONTEXTO.matcher(texto);
         if (comContexto.find()) {
             return normalizarData(comContexto.group(1), comContexto.group(2), comContexto.group(3));
@@ -139,13 +161,14 @@ public class DocumentParser {
 
     public String detectarTipoTributo(String texto) {
         if (texto == null) return null;
-        String t = texto.toUpperCase();
+        String t = texto.toUpperCase(java.util.Locale.ROOT);
 
-        if (t.contains("SIMPLES NACIONAL") || t.contains("SIMEI")) return "SIMPLES_NACIONAL";
-        if (t.contains("PGFN") || t.contains("PROCURADORIA")) return "PGFN";
+        if (NUMERO_SISPAR_PGFN_PATTERN.matcher(texto).find()
+                || t.contains("PGFN") || t.contains("PROCURADORIA")) return "PGFN";
         if (t.contains("INSS") || t.contains("GPS")) return "INSS";
+        if (t.contains("SIMPLIFICADO") || t.contains("DARF")) return "SIMPLIFICADO";
+        if (t.contains("SIMPLES NACIONAL") || t.contains("SIMEI")) return "SIMPLES_NACIONAL";
         if (t.contains("SEFAZ") || t.contains("ICMS") || t.contains("ESTADUAL")) return "ESTADUAL";
-        if (t.contains("SIMPLIFICADO")) return "SIMPLIFICADO";
         if (t.contains("INMETRO") || t.contains("METROLOGIA")) return "INMETRO";
 
         return null;

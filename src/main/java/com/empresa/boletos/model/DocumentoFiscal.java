@@ -15,6 +15,7 @@ public class DocumentoFiscal {
     private String cnpjEncontrado;
     private String numeroParcela;
     private String dataVencimento; // já normalizada, formato dd-MM-yyyy
+    private String periodoApuracao;
     private String numeroParcelamentoExtraido;
     private String nomeParaArquivo; // nome "canônico" da empresa (mesmo CNPJ = mesmo nome, mesmo que a planilha tenha grafias diferentes)
     private Empresa empresa;       // null se não identificada
@@ -45,6 +46,9 @@ public class DocumentoFiscal {
 
     public String getDataVencimento() { return dataVencimento; }
     public void setDataVencimento(String dataVencimento) { this.dataVencimento = dataVencimento; }
+
+    public String getPeriodoApuracao() { return periodoApuracao; }
+    public void setPeriodoApuracao(String periodoApuracao) { this.periodoApuracao = periodoApuracao; }
 
     public Empresa getEmpresa() { return empresa; }
     public void setEmpresa(Empresa empresa) { this.empresa = empresa; }
